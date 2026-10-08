@@ -9,16 +9,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Extract Nexus OS project
+      - name: Extract Nexus OS
         run: |
           unzip -o NexusOS_Launcher_v1.zip
+          ls -la NexusOSLauncher
           test -f NexusOSLauncher/settings.gradle
           test -f NexusOSLauncher/app/build.gradle
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v6
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -29,14 +30,23 @@ jobs:
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.10'
 
-      - name: Build Nexus OS
+      - name: Verify Gradle
+        run: |
+          which gradle
+          gradle --version
+
+      - name: Build APK
         working-directory: NexusOSLauncher
         run: |
-          gradle --no-daemon --stacktrace assembleDebug
+          gradle --no-daemon assembleDebug --stacktrace
+
+      - name: Check APK
+        run: |
+          ls -lh NexusOSLauncher/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
