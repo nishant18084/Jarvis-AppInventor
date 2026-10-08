@@ -11,15 +11,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Check project ZIP
-        run: |
-          ls -la
-          test -f NexusOS_Launcher_v1.zip
-          unzip -l NexusOS_Launcher_v1.zip
-
       - name: Extract Nexus OS project
         run: |
-          rm -rf NexusOSLauncher
           unzip -o NexusOS_Launcher_v1.zip
           test -f NexusOSLauncher/settings.gradle
           test -f NexusOSLauncher/app/build.gradle
@@ -30,12 +23,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Setup Gradle
@@ -43,14 +33,10 @@ jobs:
         with:
           gradle-version: '8.10'
 
-      - name: Build APK
+      - name: Build Nexus OS
         working-directory: NexusOSLauncher
         run: |
           gradle --no-daemon --stacktrace assembleDebug
-
-      - name: Check APK
-        run: |
-          ls -lh NexusOSLauncher/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
