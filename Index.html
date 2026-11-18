@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini AI Studio Pro</title>
+    <title>Free AI Studio (No API Key)</title>
+    <!-- Browser-based OCR AI for reading text from images without API -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --bg-color: #0b1120;
@@ -23,9 +25,8 @@
         header { background: var(--card-bg); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
         .brand { display: flex; align-items: center; gap: 8px; }
         .brand h1 { font-size: 1.2rem; color: #60a5fa; }
-        .badge { background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.4); }
+        .badge { background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 600; }
         
-        .api-box { display: flex; gap: 6px; flex-wrap: wrap; }
         input, select, button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: #0f172a; color: white; outline: none; font-size: 0.9rem; }
         input:focus, select:focus { border-color: var(--accent); }
         button { background: var(--accent); border: none; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
@@ -73,35 +74,31 @@
 
     <header>
         <div class="brand">
-            <h1>✨ Gemini AI Studio</h1>
-            <span class="badge">PRO v2.0</span>
+            <h1>✨ Free AI Studio</h1>
+            <span class="badge">100% Free • No API Key</span>
         </div>
-        <div class="api-box">
-            <input type="password" id="api-key" placeholder="Gemini API Key daalein...">
-            <button onclick="saveKey()">Save Key</button>
+        <div class="settings-right">
+            <button class="btn-secondary" onclick="exportChat()" title="Chat Download Karein">📥 Save Chat</button>
+            <button class="btn-danger" onclick="clearChat()" title="Chat Saaf Karein">🗑️ Clear</button>
         </div>
     </header>
 
     <div class="settings-bar">
         <div class="settings-left">
             <select id="mode-select" onchange="toggleMode()">
-                <option value="chat">💬 AI Chat & Vision (Memory ON)</option>
-                <option value="image">🎨 Image Generation (Photo Banayein)</option>
+                <option value="chat">💬 Free AI Chat + Photo Text Reader</option>
+                <option value="image">🎨 Free AI Image Generator</option>
             </select>
-            <input type="text" id="system-role" placeholder="AI ka Role (e.g., 'Expert Coder', 'English Teacher') - Optional">
-        </div>
-        <div class="settings-right">
-            <button class="btn-secondary" onclick="exportChat()" title="Chat Download Karein">📥 Save Chat</button>
-            <button class="btn-danger" onclick="clearChat()" title="Chat Saaf Karein">🗑️ Clear</button>
+            <input type="text" id="system-role" placeholder="AI ka Role (e.g., 'Expert Coder', 'Hindi Teacher') - Optional">
         </div>
     </div>
 
     <div id="chat-container">
         <div class="message ai-msg">
-            Namaste! <b>Gemini AI Studio Pro</b> mein aapka swagat hai.<br><br>
-            • <b>Smart Memory:</b> Ab main aapki pichli baatein yaad rakh sakta hoon.<br>
-            • <b>Vision Support:</b> 📎 button se photo upload karke sawaal poochein.<br>
-            • <b>Image Generator:</b> Upar mode badal kar AI tasveerein banayein aur download karein.
+            Namaste! <b>Free AI Studio</b> mein aapka swagat hai. Ismein kisi <b>API Key ki zaroorat nahi hai</b>!<br><br>
+            • <b>Free AI Chat:</b> Koi bhi sawaal poochein, code likhwayein, ya baatein karein.<br>
+            • <b>Photo Text Reader (OCR):</b> 📎 button se kisi document/notes ki photo upload karein, main uska text padh kar jawab dunga.<br>
+            • <b>Free Image Generator:</b> Upar mode badal kar AI tasveerein banayein aur download karein.
         </div>
     </div>
 
@@ -113,29 +110,15 @@
         </div>
         <div class="controls">
             <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-            <button id="upload-btn" class="btn-secondary" onclick="document.getElementById('image-upload').click()" title="Photo Upload Karein">📎</button>
+            <button id="upload-btn" class="btn-secondary" onclick="document.getElementById('image-upload').click()" title="Photo se Text Padhne ke liye Upload Karein">📎</button>
             <input type="text" id="prompt-input" placeholder="Apna message yahan likhein..." onkeypress="if(event.key === 'Enter') sendRequest()">
             <button id="send-btn" onclick="sendRequest()">Bhejein ➤</button>
         </div>
     </div>
 
     <script>
-        let base64Image = null;
-        let imageMimeType = null;
-        let chatHistory = []; // Stores conversation context
-
-        window.onload = () => {
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if (savedKey) document.getElementById('api-key').value = savedKey;
-        };
-
-        function saveKey() {
-            const key = document.getElementById('api-key').value.trim();
-            if (key) {
-                localStorage.setItem('gemini_api_key', key);
-                alert("✅ API Key aapke browser mein safely save ho gayi hai!");
-            }
-        }
+        let selectedImageDataUrl = null;
+        let chatHistory = [];
 
         function toggleMode() {
             const mode = document.getElementById('mode-select').value;
@@ -147,11 +130,11 @@
                 uploadBtn.style.display = 'none';
                 roleInput.style.display = 'none';
                 clearImage();
-                promptInput.placeholder = "Kaisi tasveer banani hai? Likhein (e.g., A futuristic cyberpunk Delhi street)...";
+                promptInput.placeholder = "Kaisi tasveer banani hai? English mein likhein (e.g., A futuristic Indian city at night)...";
             } else {
                 uploadBtn.style.display = 'inline-flex';
                 roleInput.style.display = 'inline-block';
-                promptInput.placeholder = "Apna message ya follow-up sawaal likhein...";
+                promptInput.placeholder = "Apna message ya sawaal yahan likhein...";
             }
         }
 
@@ -159,11 +142,10 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            imageMimeType = file.type;
             const reader = new FileReader();
             reader.onload = function(e) {
-                base64Image = e.target.result.split(',')[1];
-                document.getElementById('image-preview').src = e.target.result;
+                selectedImageDataUrl = e.target.result;
+                document.getElementById('image-preview').src = selectedImageDataUrl;
                 document.getElementById('image-name').innerText = file.name;
                 document.getElementById('image-preview-container').style.display = 'flex';
             };
@@ -171,8 +153,7 @@
         }
 
         function clearImage() {
-            base64Image = null;
-            imageMimeType = null;
+            selectedImageDataUrl = null;
             document.getElementById('image-upload').value = '';
             document.getElementById('image-preview-container').style.display = 'none';
         }
@@ -188,7 +169,7 @@
 
         function exportChat() {
             const messages = document.querySelectorAll('#chat-container .message');
-            let textContent = "=== Gemini AI Studio Chat Export ===\n\n";
+            let textContent = "=== Free AI Studio Chat Export ===\n\n";
             messages.forEach(msg => {
                 const sender = msg.classList.contains('user-msg') ? "You" : "AI";
                 const cleanText = msg.innerText.replace(/📋 Copy|⬇️ Download Image/g, '').trim();
@@ -198,20 +179,15 @@
             const blob = new Blob([textContent], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `gemini-chat-${new Date().toISOString().slice(0,10)}.txt`;
+            a.download = `free-ai-chat-${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
         }
 
         function formatMarkdown(text) {
-            // Escape HTML tags to prevent injection
             let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            // Code blocks ```code```
             safeText = safeText.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-            // Inline code `code`
             safeText = safeText.replace(/`([^`]+)`/g, '<code>$1</code>');
-            // Bold **text**
             safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-            // Line breaks
             safeText = safeText.replace(/\n/g, '<br>');
             return safeText;
         }
@@ -228,11 +204,11 @@
             if (imgSrc) {
                 const img = document.createElement('img');
                 img.src = imgSrc;
+                img.crossOrigin = "anonymous";
                 msgDiv.appendChild(img);
             }
 
-            // Action buttons for AI messages
-            if (!isUser && rawText !== "Soch raha hoon... ⏳") {
+            if (!isUser && !rawText.includes("⏳")) {
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'msg-actions';
 
@@ -250,11 +226,17 @@
                     const dlBtn = document.createElement('button');
                     dlBtn.className = 'mini-btn';
                     dlBtn.innerText = '⬇️ Download Image';
-                    dlBtn.onclick = () => {
-                        const a = document.createElement('a');
-                        a.href = imgSrc;
-                        a.download = `ai-image-${Date.now()}.png`;
-                        a.click();
+                    dlBtn.onclick = async () => {
+                        try {
+                            const res = await fetch(imgSrc);
+                            const blob = await res.blob();
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = `free-ai-image-${Date.now()}.jpg`;
+                            a.click();
+                        } catch (e) {
+                            window.open(imgSrc, '_blank');
+                        }
                     };
                     actionsDiv.appendChild(dlBtn);
                 }
@@ -268,94 +250,96 @@
         }
 
         async function sendRequest() {
-            const apiKey = document.getElementById('api-key').value.trim();
             const prompt = document.getElementById('prompt-input').value.trim();
             const mode = document.getElementById('mode-select').value;
             const systemRole = document.getElementById('system-role').value.trim();
             const sendBtn = document.getElementById('send-btn');
 
-            if (!apiKey) {
-                alert("⚠️ Pehle upar apni Gemini API Key daalein aur Save karein!");
-                return;
-            }
-            if (!prompt && !base64Image) return;
+            if (!prompt && !selectedImageDataUrl) return;
 
-            const userImgPreview = base64Image ? document.getElementById('image-preview').src : null;
-            appendMessage(prompt || "Uploaded an image", true, userImgPreview);
+            const currentImg = selectedImageDataUrl;
+            appendMessage(prompt || "Uploaded an image for text extraction", true, currentImg);
             
             document.getElementById('prompt-input').value = '';
+            clearImage();
             sendBtn.disabled = true;
+
             const loadingMsg = appendMessage("Soch raha hoon... ⏳", false);
 
             try {
                 if (mode === 'chat') {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                    
-                    const currentParts = [];
-                    if (prompt) currentParts.push({ text: prompt });
-                    if (base64Image) {
-                        currentParts.push({
-                            inline_data: {
-                                mime_type: imageMimeType,
-                                data: base64Image
-                            }
-                        });
+                    let finalUserPrompt = prompt;
+
+                    // If user uploaded an image, extract text locally using Tesseract.js
+                    if (currentImg) {
+                        loadingMsg.innerHTML = "Photo se text padh raha hoon (OCR)... ⏳";
+                        const ocrResult = await Tesseract.recognize(currentImg, 'eng+hin');
+                        const extractedText = ocrResult.data.text.trim();
+                        
+                        if (extractedText) {
+                            finalUserPrompt = `${prompt ? prompt + "\n\n" : ""}Here is the text extracted from the user's uploaded image:\n"${extractedText}"\n\nPlease analyze, summarize, or answer based on this text.`;
+                        } else {
+                            finalUserPrompt = `${prompt || "Analyze image"} (Note: No readable text was detected in the uploaded image.)`;
+                        }
+                        loadingMsg.innerHTML = "Jawab taiyar kar raha hoon... ⏳";
                     }
 
-                    // Add user message to memory
-                    chatHistory.push({ role: "user", parts: currentParts });
-
-                    const payload = { contents: chatHistory };
+                    // Build conversation payload
+                    const messages = [];
                     if (systemRole) {
-                        payload.systemInstruction = { parts: [{ text: systemRole }] };
+                        messages.push({ role: "system", content: systemRole });
+                    } else {
+                        messages.push({ role: "system", content: "You are a helpful, friendly AI assistant." });
                     }
 
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                    // Keep last 6 messages for memory
+                    chatHistory.push({ role: "user", content: finalUserPrompt });
+                    const recentHistory = chatHistory.slice(-6);
+                    messages.push(...recentHistory);
 
-                    const data = await response.json();
-                    if (data.error) {
-                        chatHistory.pop(); // Remove failed message from history
-                        throw new Error(data.error.message);
-                    }
-
-                    const reply = data.candidates[0].content.parts[0].text;
-                    
-                    // Add AI response to memory
-                    chatHistory.push({ role: "model", parts: [{ text: reply }] });
-
-                    loadingMsg.remove();
-                    appendMessage(reply, false);
-                    clearImage();
-
-                } else if (mode === 'image') {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-                    
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                    // Free keyless text API
+                    const response = await fetch("https://text.pollinations.ai/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            instances: [{ prompt: prompt }],
-                            parameters: { sampleCount: 1 }
+                            messages: messages,
+                            model: "openai"
                         })
                     });
 
-                    const data = await response.json();
-                    if (data.error) throw new Error(data.error.message);
+                    if (!response.ok) throw new Error("Server busy hai, thodi der baad dubara try karein.");
 
-                    const base64Generated = data.predictions[0].bytesBase64Encoded;
-                    const imgUrl = `data:image/png;base64,${base64Generated}`;
-                    
+                    const reply = await response.text();
+                    chatHistory.push({ role: "assistant", content: reply });
+
                     loadingMsg.remove();
-                    appendMessage(`Yeh rahi aapki tasveer: **${prompt}**`, false, imgUrl, true);
+                    appendMessage(reply, false);
+
+                } else if (mode === 'image') {
+                    loadingMsg.innerHTML = "Tasveer bana raha hoon... 🎨⏳";
+                    const seed = Math.floor(Math.random() * 1000000);
+                    const encodedPrompt = encodeURIComponent(prompt);
+                    const imgUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
+
+                    // Preload image before displaying
+                    const imgLoader = new Image();
+                    imgLoader.crossOrigin = "anonymous";
+                    imgLoader.onload = () => {
+                        loadingMsg.remove();
+                        appendMessage(`Yeh rahi aapki tasveer: **${prompt}**`, false, imgUrl, true);
+                        sendBtn.disabled = false;
+                    };
+                    imgLoader.onerror = () => {
+                        loadingMsg.innerHTML = `<span style="color:#f87171;">❌ Image generate karne mein dikkat aayi. Dubara try karein.</span>`;
+                        sendBtn.disabled = false;
+                    };
+                    imgLoader.src = imgUrl;
+                    return; // finally block handled in onload/onerror
                 }
             } catch (error) {
                 loadingMsg.innerHTML = `<span style="color:#f87171;">❌ Error: ${error.message}</span>`;
             } finally {
-                sendBtn.disabled = false;
+                if (mode !== 'image') sendBtn.disabled = false;
             }
         }
     </script>
