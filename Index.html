@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Studio Pro</title>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --muted-text: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Header */
+        header { background: var(--card-bg); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+        .brand { display: flex; align-items: center; gap: 8px; }
+        .brand h1 { font-size: 1.2rem; color: #60a5fa; }
+        .badge { background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.4); }
+        
+        .api-box { display: flex; gap: 6px; flex-wrap: wrap; }
+        input, select, button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: #0f172a; color: white; outline: none; font-size: 0.9rem; }
+        input:focus, select:focus { border-color: var(--accent); }
+        button { background: var(--accent); border: none; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+        button:hover { background: var(--accent-hover); }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        .btn-secondary { background: #334155; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+
+        /* Settings & Controls Bar */
+        .settings-bar { background: #131c31; padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+        .settings-left { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
+        .settings-left input { flex: 1; min-width: 220px; }
+        .settings-right { display: flex; gap: 8px; }
+
+        /* Chat Area */
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+        .message { max-width: 82%; padding: 14px 16px; border-radius: 14px; line-height: 1.6; word-wrap: break-word; position: relative; font-size: 0.95rem; }
+        .user-msg { background: var(--accent); align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ai-msg { background: var(--card-bg); align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        
+        .msg-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .mini-btn { padding: 4px 8px; font-size: 0.75rem; background: rgba(15, 23, 42, 0.6); color: var(--muted-text); border: 1px solid var(--border); border-radius: 5px; }
+        .mini-btn:hover { color: white; background: #0f172a; }
+
+        .ai-msg img, .user-msg img { max-width: 100%; max-height: 360px; border-radius: 8px; margin-top: 10px; display: block; border: 1px solid var(--border); }
+        .ai-msg pre { background: #090d16; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid #1e293b; font-family: 'Consolas', monospace; font-size: 0.85rem; color: #e2e8f0; }
+        .ai-msg code { background: rgba(15, 23, 42, 0.8); padding: 2px 5px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 0.85rem; }
+
+        /* Input Area */
+        .input-area { background: var(--card-bg); padding: 14px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        #prompt-input { flex: 1; font-size: 1rem; padding: 10px 14px; }
+        #image-preview-container { display: none; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--muted-text); background: #0f172a; padding: 6px 12px; border-radius: 8px; width: fit-content; }
+        #image-preview { height: 38px; border-radius: 4px; }
+
+        @media (max-width: 600px) {
+            .message { max-width: 92%; }
+            header, .settings-bar, .input-area { padding: 10px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>✨ Gemini AI Studio</h1>
+            <span class="badge">PRO v2.0</span>
+        </div>
+        <div class="api-box">
+            <input type="password" id="api-key" placeholder="Gemini API Key daalein...">
+            <button onclick="saveKey()">Save Key</button>
+        </div>
+    </header>
+
+    <div class="settings-bar">
+        <div class="settings-left">
+            <select id="mode-select" onchange="toggleMode()">
+                <option value="chat">💬 AI Chat & Vision (Memory ON)</option>
+                <option value="image">🎨 Image Generation (Photo Banayein)</option>
+            </select>
+            <input type="text" id="system-role" placeholder="AI ka Role (e.g., 'Expert Coder', 'English Teacher') - Optional">
+        </div>
+        <div class="settings-right">
+            <button class="btn-secondary" onclick="exportChat()" title="Chat Download Karein">📥 Save Chat</button>
+            <button class="btn-danger" onclick="clearChat()" title="Chat Saaf Karein">🗑️ Clear</button>
+        </div>
+    </div>
+
+    <div id="chat-container">
+        <div class="message ai-msg">
+            Namaste! <b>Gemini AI Studio Pro</b> mein aapka swagat hai.<br><br>
+            • <b>Smart Memory:</b> Ab main aapki pichli baatein yaad rakh sakta hoon.<br>
+            • <b>Vision Support:</b> 📎 button se photo upload karke sawaal poochein.<br>
+            • <b>Image Generator:</b> Upar mode badal kar AI tasveerein banayein aur download karein.
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div id="image-preview-container">
+            <img id="image-preview" src="" alt="Preview">
+            <span id="image-name"></span>
+            <button onclick="clearImage()" class="btn-danger" style="padding:3px 8px; font-size:0.75rem;">✕</button>
+        </div>
+        <div class="controls">
+            <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+            <button id="upload-btn" class="btn-secondary" onclick="document.getElementById('image-upload').click()" title="Photo Upload Karein">📎</button>
+            <input type="text" id="prompt-input" placeholder="Apna message yahan likhein..." onkeypress="if(event.key === 'Enter') sendRequest()">
+            <button id="send-btn" onclick="sendRequest()">Bhejein ➤</button>
+        </div>
+    </div>
+
+    <script>
+        let base64Image = null;
+        let imageMimeType = null;
+        let chatHistory = []; // Stores conversation context
+
+        window.onload = () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) document.getElementById('api-key').value = savedKey;
+        };
+
+        function saveKey() {
+            const key = document.getElementById('api-key').value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                alert("✅ API Key aapke browser mein safely save ho gayi hai!");
+            }
+        }
+
+        function toggleMode() {
+            const mode = document.getElementById('mode-select').value;
+            const uploadBtn = document.getElementById('upload-btn');
+            const roleInput = document.getElementById('system-role');
+            const promptInput = document.getElementById('prompt-input');
+
+            if (mode === 'image') {
+                uploadBtn.style.display = 'none';
+                roleInput.style.display = 'none';
+                clearImage();
+                promptInput.placeholder = "Kaisi tasveer banani hai? Likhein (e.g., A futuristic cyberpunk Delhi street)...";
+            } else {
+                uploadBtn.style.display = 'inline-flex';
+                roleInput.style.display = 'inline-block';
+                promptInput.placeholder = "Apna message ya follow-up sawaal likhein...";
+            }
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            imageMimeType = file.type;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                base64Image = e.target.result.split(',')[1];
+                document.getElementById('image-preview').src = e.target.result;
+                document.getElementById('image-name').innerText = file.name;
+                document.getElementById('image-preview-container').style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            base64Image = null;
+            imageMimeType = null;
+            document.getElementById('image-upload').value = '';
+            document.getElementById('image-preview-container').style.display = 'none';
+        }
+
+        function clearChat() {
+            if (confirm("Kya aap poori chat history saaf karna chahte hain?")) {
+                chatHistory = [];
+                document.getElementById('chat-container').innerHTML = `
+                    <div class="message ai-msg">Chat history saaf kar di gayi hai. Nayi baat shuru karein! ✨</div>
+                `;
+            }
+        }
+
+        function exportChat() {
+            const messages = document.querySelectorAll('#chat-container .message');
+            let textContent = "=== Gemini AI Studio Chat Export ===\n\n";
+            messages.forEach(msg => {
+                const sender = msg.classList.contains('user-msg') ? "You" : "AI";
+                const cleanText = msg.innerText.replace(/📋 Copy|⬇️ Download Image/g, '').trim();
+                textContent += `[${sender}]:\n${cleanText}\n\n----------------------------------\n\n`;
+            });
+
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `gemini-chat-${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+        }
+
+        function formatMarkdown(text) {
+            // Escape HTML tags to prevent injection
+            let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            // Code blocks ```code```
+            safeText = safeText.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            // Inline code `code`
+            safeText = safeText.replace(/`([^`]+)`/g, '<code>$1</code>');
+            // Bold **text**
+            safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            // Line breaks
+            safeText = safeText.replace(/\n/g, '<br>');
+            return safeText;
+        }
+
+        function appendMessage(rawText, isUser, imgSrc = null, isGeneratedImage = false) {
+            const chat = document.getElementById('chat-container');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isUser ? 'user-msg' : 'ai-msg'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = isUser ? rawText.replace(/\n/g, '<br>') : formatMarkdown(rawText);
+            msgDiv.appendChild(contentDiv);
+
+            if (imgSrc) {
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                msgDiv.appendChild(img);
+            }
+
+            // Action buttons for AI messages
+            if (!isUser && rawText !== "Soch raha hoon... ⏳") {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'msg-actions';
+
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'mini-btn';
+                copyBtn.innerText = '📋 Copy';
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(rawText);
+                    copyBtn.innerText = '✅ Copied!';
+                    setTimeout(() => copyBtn.innerText = '📋 Copy', 2000);
+                };
+                actionsDiv.appendChild(copyBtn);
+
+                if (isGeneratedImage && imgSrc) {
+                    const dlBtn = document.createElement('button');
+                    dlBtn.className = 'mini-btn';
+                    dlBtn.innerText = '⬇️ Download Image';
+                    dlBtn.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = imgSrc;
+                        a.download = `ai-image-${Date.now()}.png`;
+                        a.click();
+                    };
+                    actionsDiv.appendChild(dlBtn);
+                }
+
+                msgDiv.appendChild(actionsDiv);
+            }
+
+            chat.appendChild(msgDiv);
+            chat.scrollTop = chat.scrollHeight;
+            return msgDiv;
+        }
+
+        async function sendRequest() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const prompt = document.getElementById('prompt-input').value.trim();
+            const mode = document.getElementById('mode-select').value;
+            const systemRole = document.getElementById('system-role').value.trim();
+            const sendBtn = document.getElementById('send-btn');
+
+            if (!apiKey) {
+                alert("⚠️ Pehle upar apni Gemini API Key daalein aur Save karein!");
+                return;
+            }
+            if (!prompt && !base64Image) return;
+
+            const userImgPreview = base64Image ? document.getElementById('image-preview').src : null;
+            appendMessage(prompt || "Uploaded an image", true, userImgPreview);
+            
+            document.getElementById('prompt-input').value = '';
+            sendBtn.disabled = true;
+            const loadingMsg = appendMessage("Soch raha hoon... ⏳", false);
+
+            try {
+                if (mode === 'chat') {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                    
+                    const currentParts = [];
+                    if (prompt) currentParts.push({ text: prompt });
+                    if (base64Image) {
+                        currentParts.push({
+                            inline_data: {
+                                mime_type: imageMimeType,
+                                data: base64Image
+                            }
+                        });
+                    }
+
+                    // Add user message to memory
+                    chatHistory.push({ role: "user", parts: currentParts });
+
+                    const payload = { contents: chatHistory };
+                    if (systemRole) {
+                        payload.systemInstruction = { parts: [{ text: systemRole }] };
+                    }
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (data.error) {
+                        chatHistory.pop(); // Remove failed message from history
+                        throw new Error(data.error.message);
+                    }
+
+                    const reply = data.candidates[0].content.parts[0].text;
+                    
+                    // Add AI response to memory
+                    chatHistory.push({ role: "model", parts: [{ text: reply }] });
+
+                    loadingMsg.remove();
+                    appendMessage(reply, false);
+                    clearImage();
+
+                } else if (mode === 'image') {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            instances: [{ prompt: prompt }],
+                            parameters: { sampleCount: 1 }
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error.message);
+
+                    const base64Generated = data.predictions[0].bytesBase64Encoded;
+                    const imgUrl = `data:image/png;base64,${base64Generated}`;
+                    
+                    loadingMsg.remove();
+                    appendMessage(`Yeh rahi aapki tasveer: **${prompt}**`, false, imgUrl, true);
+                }
+            } catch (error) {
+                loadingMsg.innerHTML = `<span style="color:#f87171;">❌ Error: ${error.message}</span>`;
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
